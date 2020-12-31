@@ -20,6 +20,8 @@
 #include <iostream>
 #include <map>
 
+#include "ECS/entitysystem.h"
+
 class GameWindow : public QWindow, protected QOpenGLFunctions
 {
 	Q_OBJECT
