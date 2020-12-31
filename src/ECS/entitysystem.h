@@ -5,7 +5,6 @@
 struct GenericComponent
 {
     unsigned int entityId;
-    unsigned int componentId;
 
     GenericComponent *prev;
     GenericComponent *next; 
@@ -60,25 +59,30 @@ public:
     struct Entity
     {
     friend class EntitySystem;
-        Entity(unsigned int id, Entity *previousEntity) : id(id), previousEntity(previousEntity) {}
+        Entity(unsigned int id, Entity *previousEntity) : id(id), previousEntity(previousEntity), nextEntity(nullptr) {}
 
         template <typename Component>
-        inline bool has() const { return componentList.find(typeid(Component).name()) != componentList.end(); }
+        inline bool has() const { return has(typeid(Component).name()); }
 
         template <typename Component>
         inline Component* get() { return has<Component>() ? static_cast<Component* >(componentList[typeid(Component).name()]->data) : nullptr; }
 
     protected:
+        inline bool has(std::string id) const { return componentList.find(id) != componentList.end(); }
+
         template <typename Component>
         inline GenericComponent* getComponent() { return has<Component>() ? componentList[typeid(Component).name()] : nullptr; }
+        inline GenericComponent* getComponent(std::string id) { return has(id) ? componentList[id] : nullptr; }
 
         unsigned int id;
         Entity *previousEntity;
+        Entity *nextEntity;
 
         std::unordered_map<std::string, GenericComponent*> componentList;
     };
 
-    inline EntitySystem::Entity* createEntity() { EntitySystem::Entity *newEntity = new EntitySystem::Entity {nbEntity++, lastEntity}; lastEntity = newEntity; return newEntity; }
+    inline EntitySystem::Entity* createEntity() { EntitySystem::Entity *newEntity = new EntitySystem::Entity {nbEntity++, lastEntity}; if(lastEntity != nullptr) { lastEntity->nextEntity = newEntity; } lastEntity = newEntity; return newEntity; }
+    void removeEntity(EntitySystem::Entity* entity);
 
     template <typename Component>
     Component* attach(EntitySystem::Entity *entity, const Component& component);
@@ -93,6 +97,10 @@ public:
     //std::vector<Entity* > group();
 
 private:
+    std::unordered_map<std::string, GenericComponent* >::iterator dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, GenericComponent* >::iterator it);
+
+    void moveBack(EntitySystem::Entity *entity, std::string id, GenericComponent *component);
+
     unsigned int nbEntity = 0;
     Entity *lastEntity = nullptr;
     std::unordered_map<std::string, GenericComponent*> componentMap;
@@ -113,7 +121,7 @@ Component* EntitySystem::attach(EntitySystem::Entity *entity, const Component& c
     {
         if(componentMap.find(id) == componentMap.end())
         {
-            GenericComponent *cp = new GenericComponent {entity->id, 0, nullptr, nullptr, cmp};
+            GenericComponent *cp = new GenericComponent {entity->id, nullptr, nullptr, cmp};
             componentMap[id] = cp;
 
             entity->componentList[id] = cp;
@@ -122,19 +130,22 @@ Component* EntitySystem::attach(EntitySystem::Entity *entity, const Component& c
         {
             if(componentMap[id]->prev == nullptr)
             {
-                GenericComponent *cp = new GenericComponent {entity->id, 1, componentMap[id], nullptr, cmp};
+                GenericComponent *cp = new GenericComponent {entity->id, componentMap[id], nullptr, cmp};
                 componentMap[id]->prev = cp;
                 componentMap[id]->next = cp;
 
                 entity->componentList[id] = cp;
+
+                moveBack(entity, id, cp);
             }
             else
             {
-                GenericComponent *cp = new GenericComponent {entity->id, componentMap[id]->prev->componentId + 1, componentMap[id]->prev, nullptr, cmp};
+                GenericComponent *cp = new GenericComponent {entity->id, componentMap[id]->prev, nullptr, cmp};
                 componentMap[id]->prev->next = cp;
                 componentMap[id]->prev = cp;
 
                 entity->componentList[id] = cp;
+                moveBack(entity, id, cp);
             }
         }
     }
@@ -212,5 +223,3 @@ ComponentList<Component> EntitySystem::view()
     else
         return ComponentList<Component>();
 }
-
-

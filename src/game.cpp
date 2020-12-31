@@ -14,6 +14,19 @@ struct Velocity
     float z;
 };
 
+template <typename Container3D>
+void print3DContainer(Container3D container, std::string print = "Printing data")
+{
+    int i = 0;
+
+    std::cout << print << std::endl;
+
+    for(const auto& pos : container)
+    {
+        std::cout << "[" << i++ << "]: " << pos.x << " " << pos.y << " " << pos.z << std::endl;
+    }
+}
+
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -73,20 +86,13 @@ void GameWindow::initialize()
 
     //std::cout << ent1.componentList[typeid(Position).name()]->entityId << std::endl;
 
-    auto posView = ecs.view<Position>();
+    print3DContainer(ecs.view<Position>(), "Printing every position");
 
     int i = 0;
 
-    std::cout << "Printing every position" << std::endl;
-
-    for(const auto& pos : posView)
-    {
-        std::cout << i++ << ": " << pos.x << " " << pos.y << " " << pos.z << std::endl;
-    }
-
-    i = 0;
-
     std::cout << "Updating every position" << std::endl;
+
+    auto posView = ecs.view<Position>();
 
     for(auto& pos : posView)
     {
@@ -97,25 +103,10 @@ void GameWindow::initialize()
         //std::cout << i++ << ": " << pos.x << " " << pos.y << " " << pos.z << std::endl;
     }
 
-    i = 0;
+    print3DContainer(ecs.view<Position>(), "Printing every position");
 
-    std::cout << "Printing every position" << std::endl;
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
 
-    for(auto pos : posView)
-    {
-        std::cout << i++ << ": " << pos.x << " " << pos.y << " " << pos.z << std::endl;
-    }
-
-    auto velView = ecs.view<Velocity>();
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    for(auto vel : velView)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
 
     auto pos = ent1->get<Position>();
     if(pos != nullptr)
@@ -151,14 +142,7 @@ void GameWindow::initialize()
 
     i = 0;
 
-    std::cout << "Printing every position" << std::endl;
-
-    auto posView2 = ecs.view<Position>();
-
-    for(const auto& pos : posView2)
-    {
-        std::cout << i++ << ": " << pos.x << " " << pos.y << " " << pos.z << std::endl;
-    }
+    print3DContainer(ecs.view<Position>(), "Printing every position");
 
     std::cout << "Detaching position from Entity 4" << std::endl;
 
@@ -172,120 +156,107 @@ void GameWindow::initialize()
 
     std::cout << (ent5->has<Position>() ? "Error" : "Done") << std::endl;
 
-    i = 0;
+    print3DContainer(ecs.view<Position>(), "Printing every position");
 
-    std::cout << "Printing every position" << std::endl;
+    ecs.attach<Position>(ent5, { 1.0f, 1.0f, 1.0f } );
 
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.attach<Velocity>(ent1, { 1.0f, -1.0f, 0.0f } );
+    ecs.attach<Velocity>(ent2, { 5.0f, 0.0f, -5.0f } );
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.dettach<Velocity>(ent1);
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.dettach<Velocity>(ent2);
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.attach<Velocity>(ent1, { 1.0f, -1.0f, 0.0f } );
+    ecs.attach<Velocity>(ent2, { 5.0f, 0.0f, -5.0f } );
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.dettach<Velocity>(ent2);
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.dettach<Velocity>(ent1);
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+    
+    ecs.dettach<Velocity>(ent1);
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+
+    ecs.removeEntity(ent3);
+
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+
+    ecs.attach<Position>(ent5, { 0.0f, 0.0f, 0.0f} );
+
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+
+    ecs.attach<Velocity>(ent1, { 1.0f, -1.0f, 0.0f } );
+    ecs.attach<Velocity>(ent2, { 5.0f, 0.0f, -5.0f } );
+
+    auto posView5 = ecs.view<Position>();
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.removeEntity(ent2);
+
+    auto posView6 = ecs.view<Position>();
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.removeEntity(ent1);
+
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    auto ent6 = ecs.createEntity();
+    auto ent7 = ecs.createEntity();
+    auto ent8 = ecs.createEntity();
+
+    ecs.attach<Velocity>(ent6, { 1.0f, -1.0f, 0.0f } );
+    ecs.attach<Velocity>(ent7, { 5.0f, 0.0f, -5.0f } );
+    ecs.attach<Velocity>(ent8, { 3.0f, 0.4f, 1.0f } );
+
+    ecs.attach<Position>(ent6, { 1.0f, -1.0f, 0.0f } );
+    ecs.attach<Position>(ent7, { 5.0f, 0.0f, -5.0f } );
+    ecs.attach<Position>(ent8, { 3.0f, 0.4f, 1.0f } );
+
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.removeEntity(ent7);
+    ecs.removeEntity(ent5);
+
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.removeEntity(ent8);
+
+    auto posView2 = ecs.view<Position>();
+
+    print3DContainer(posView2, "Printing every position");
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.removeEntity(ent6);
+
+    print3DContainer(ecs.view<Position>(), "Printing every position");
+    print3DContainer(ecs.view<Velocity>(), "Printing every velocity");
+
+    ecs.attach<Position>(ent4, { -1.0f, -1.0f, -1.0f } );
     auto posView3 = ecs.view<Position>();
-
-    for(const auto& pos : posView3)
-    {
-        std::cout << i++ << ": " << pos.x << " " << pos.y << " " << pos.z << std::endl;
-    }
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView2 = ecs.view<Velocity>();
-
-    for(auto vel : velView2)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-
-    ecs.attach<Velocity>(ent1, { 1.0f, -1.0f, 0.0f } );
-    ecs.attach<Velocity>(ent2, { 5.0f, 0.0f, -5.0f } );
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView3 = ecs.view<Velocity>();
-
-    for(auto vel : velView3)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-
-    ecs.dettach<Velocity>(ent1);
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView4 = ecs.view<Velocity>();
-
-    for(auto vel : velView4)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-
-    ecs.dettach<Velocity>(ent2);
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView5 = ecs.view<Velocity>();
-
-    for(auto vel : velView5)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-
-    ecs.attach<Velocity>(ent1, { 1.0f, -1.0f, 0.0f } );
-    ecs.attach<Velocity>(ent2, { 5.0f, 0.0f, -5.0f } );
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView6 = ecs.view<Velocity>();
-
-    for(auto vel : velView6)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-
-    ecs.dettach<Velocity>(ent2);
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView7 = ecs.view<Velocity>();
-
-    for(auto vel : velView7)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-
-    ecs.dettach<Velocity>(ent1);
-
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView8 = ecs.view<Velocity>();
-
-    for(auto vel : velView8)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
-    
-    ecs.dettach<Velocity>(ent1);
-    
-    i = 0;
-
-    std::cout << "Printing every velocity" << std::endl;
-
-    auto velView9 = ecs.view<Velocity>();
-
-    for(auto vel : velView9)
-    {
-        std::cout << i++ << ": " << vel.x << " " << vel.y << " " << vel.z << std::endl;
-    }
+    print3DContainer(posView3, "Printing every position");
 
     //std::cout << i << ": " << (*posView.end()).x << std::endl;
 
