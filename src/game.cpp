@@ -1,5 +1,10 @@
 #include "game.h"
 
+#include <vector>
+#include <algorithm>
+#include <random>
+#include <chrono>  
+
 struct Position
 {
     float x;
@@ -12,6 +17,31 @@ struct Velocity
     float x;
     float y;
     float z;
+};
+
+struct A
+{
+    std::string name;
+    int a;
+};
+
+struct B
+{
+    std::string name;
+    int a;
+    float b;
+};
+
+struct Vector
+{
+    float x;
+    float y;
+    float z;
+};
+
+struct Pattern
+{
+    std::string patternName;
 };
 
 template <typename Container3D>
@@ -48,7 +78,7 @@ void GameWindow::initialize()
 
     std::cout << "Init Ecs" << std::endl;
     EntitySystem ecs;
-
+/*
     std::cout << "Creating 4 Entities: " << std::endl;
     auto ent1 = ecs.createEntity();
     auto ent2 = ecs.createEntity();
@@ -260,12 +290,257 @@ void GameWindow::initialize()
 
     //std::cout << i << ": " << (*posView.end()).x << std::endl;
 
+*/
+
+
+    std::vector<EntitySystem::Entity *> entityList;
+    std::vector<int> indice;
+
+    int n = 4;
+
+    for (int i = 0; i < n; i++)
+        indice.push_back(i);
+
+    //unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    //std::default_random_engine e(seed);
+
+    //std::shuffle(indice.begin(), indice.end(), e);
+
+    indice[0] = 0;
+    indice[1] = 1;
+    indice[2] = 3;
+    indice[3] = 2;
+
 /*
+    // ??? But resolved ?
+    indice[0] = 5;
+    indice[1] = 0;
+    indice[2] = 6;
+    indice[3] = 4;
+    indice[4] = 8;
+    indice[5] = 2;
+    indice[6] = 7;
+    indice[7] = 3;
+    indice[8] = 1;
+    indice[9] = 9;
+*/
+
+/*
+    //Resolved
+    indice[0] = 5;
+    indice[1] = 9;
+    indice[2] = 7;
+    indice[3] = 8;
+    indice[4] = 1;
+    indice[5] = 3;
+    indice[6] = 6;
+    indice[7] = 4;
+    indice[8] = 2;
+    indice[9] = 0;
+*/
+
+/*
+    //Resolved
+    indice[0] = 7;
+    indice[1] = 9;
+    indice[2] = 6;
+    indice[3] = 8;
+    indice[4] = 5;
+    indice[5] = 0;
+    indice[6] = 2;
+    indice[7] = 4;
+    indice[8] = 3;
+    indice[9] = 1;
+*/
+
+/*
+    // Infinite loop ? Resolved ?
+    indice[0] = 8;
+    indice[1] = 2;
+    indice[2] = 9;
+    indice[3] = 5;
+    indice[4] = 6;
+    indice[5] = 7;
+    indice[6] = 0;
+    indice[7] = 1;
+    indice[8] = 3;
+    indice[9] = 4;
+*/
+
+/*
+    //Bug when deleting the before last entity that setting the previous entity of the last entity to be himself
+    //Causing all the entity to be shifted and having the last entity being null even if they were some entity left 
+    //Resolved
+    indice[0] = 6;
+    indice[1] = 2;
+    indice[2] = 0;
+    indice[3] = 3;
+    indice[4] = 7;
+    indice[5] = 9;
+    indice[6] = 1;
+    indice[7] = 4;
+    indice[8] = 5;
+    indice[9] = 8;
+*/
+
+    for(auto i = 0; i < n; i++)
+    {
+        auto entity = ecs.createEntity();
+        ecs.attach<A>(entity, { "Entity " + std::to_string(i), i } );
+
+        if(i % 2 == 0)
+            ecs.attach<B>(entity, { "Entity " + std::to_string(i), i , i * 5.5f } );
+
+        if(i % 3 == 0)
+            ecs.attach<Pattern>(entity, { "Guess i got pattern " + std::to_string(i % 2) } );
+
+        ecs.attach<Vector>(entity, { i, -i, 0 } );
+
+        entityList.push_back(entity);
+
+        //if(i % 1000 == 0)
+        //    std::cout << "Created " << i << " Entities !" << std::endl;
+    }
+
+    //print3DContainer(ecs.view<Vector>(), "Printing every vector");
+    //print3DContainer(ecs.view<Position>(), "Printing every position");
+
+    //for(auto i : indice)
+    //    std::cout << i << std::endl;
+
+/*
+    int i = 0;
+
+    std::cout << "Printing A" << std::endl;
     i = 0;
 
-    for(auto current = posView.begin(); current != posView.end(); current++)
+    for(const auto& st : ecs.view<A>())
     {
-        std::cout << i++ << std::endl;
+        std::cout << "[" << i++ << "]: " << st.name << " " << st.a << std::endl;
+    }
+
+    std::cout << "Printing B" << std::endl;
+    i = 0;
+
+    for(const auto& st : ecs.view<B>())
+    {
+        std::cout << "[" << i++ << "]: " << st.name << " " << st.a << " " << st.b << std::endl;
+    }
+
+    std::cout << "Printing pattern" << std::endl;
+    i = 0;
+
+    for(const auto& st : ecs.view<Pattern>())
+    {
+        std::cout << "[" << i++ << "]: " << st.patternName << std::endl;
+    }
+*/
+    for(auto j = 0; j < n; j++)
+    {
+        ecs.removeEntity(entityList[indice[j]]);
+        print3DContainer(ecs.view<Vector>(), "Printing every vector");
+
+        //if(j % 1000 == 0)
+        //    std::cout << "Deleted " << j << " Entities !" << std::endl;
+/*
+        std::cout << "Printing A" << std::endl;
+        i = 0;
+
+        for(const auto& st : ecs.view<A>())
+        {
+            std::cout << "[" << i++ << "]: " << st.name << " " << st.a << std::endl;
+        }
+
+        std::cout << "Printing B" << std::endl;
+        i = 0;
+
+        for(const auto& st : ecs.view<B>())
+        {
+            std::cout << "[" << i++ << "]: " << st.name << " " << st.a << " " << st.b << std::endl;
+        }
+
+        std::cout << "Printing pattern" << std::endl;
+        i = 0;
+
+        for(const auto& st : ecs.view<Pattern>())
+        {
+            std::cout << "[" << i++ << "]: " << st.patternName << std::endl;
+        }
+*/
+    }
+
+/*
+    int n = 4;
+
+    int indice[] = { 0, 1, 2, 3 };
+
+    do
+    {
+        std::cout << "Testing set:";
+
+        for(auto i : indice)
+            std::cout << " " << i;
+
+        std::cout << std::endl; 
+
+        for(auto i = 0; i < n; i++)
+        {
+            auto entity = ecs.createEntity();
+            ecs.attach<A>(entity, { "Entity " + std::to_string(i), i } );
+
+            if(i % 2 == 0)
+                ecs.attach<B>(entity, { "Entity " + std::to_string(i), i , i * 5.5f } );
+
+            if(i % 3 == 0)
+                ecs.attach<Pattern>(entity, { "Guess i got pattern " + std::to_string(i % 2) } );
+
+            ecs.attach<Vector>(entity, { i, -i, indice[i] } );
+
+            entityList.push_back(entity);
+        }
+
+        print3DContainer(ecs.view<Vector>(), "Printing every vector");
+
+        for(auto j = 0; j < n; j++)
+            ecs.removeEntity(entityList[indice[j]]);
+
+        print3DContainer(ecs.view<Vector>(), "Printing every vector");
+    } while( std::next_permutation(indice, indice + n) );
+
+    //print3DContainer(ecs.view<Vector>(), "Printing every vector");
+*/
+/*
+    for(auto j = 0; j < 10; j++)
+    {
+        if(j % 2 == 1)
+        {
+            ecs.removeEntity(entityList[j]);
+            print3DContainer(ecs.view<Vector>(), "Printing every vector");
+
+            std::cout << "Printing A" << std::endl;
+            i = 0;
+
+            for(const auto& st : ecs.view<A>())
+            {
+                std::cout << "[" << i++ << "]: " << st.name << " " << st.a << std::endl;
+            }
+
+            std::cout << "Printing B" << std::endl;
+            i = 0;
+
+            for(const auto& st : ecs.view<B>())
+            {
+                std::cout << "[" << i++ << "]: " << st.name << " " << st.a << " " << st.b << std::endl;
+            }
+
+            std::cout << "Printing pattern" << std::endl;
+            i = 0;
+
+            for(const auto& st : ecs.view<Pattern>())
+            {
+                std::cout << "[" << i++ << "]: " << st.patternName << std::endl;
+            } 
+        }
     }
 */
 

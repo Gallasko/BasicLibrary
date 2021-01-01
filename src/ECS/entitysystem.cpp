@@ -9,12 +9,11 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
         while(it != entity->componentList.end())
         {
             it = dettach(entity, it->first, it);
-            it++;
         }
 
-        lastEntity = entity->previousEntity;
-        if (entity->previousEntity != nullptr)
-            entity->previousEntity->nextEntity = nullptr;
+        lastEntity = lastEntity->previousEntity;
+        if (lastEntity != nullptr)
+            lastEntity->nextEntity = nullptr;
     }
     else
     {
@@ -31,39 +30,38 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
 
                 dettach(lastEntity, it->first, lastEntity->componentList.find(it->first));
                 lastEntity->componentList[it->first] = toBeChanged;
+
+                it++;
             }
             else
             {
                 it = dettach(entity, it->first, it);
             }
-
-            if(it != entity->componentList.end())
-                it++;
         }
-
 
         EntitySystem::Entity *last;
         
         if(lastEntity->previousEntity != entity)
             last = lastEntity->previousEntity;
         else
-            last = lastEntity->previousEntity->previousEntity;
+            last = nullptr;
 
         lastEntity->id = entity->id;
         lastEntity->previousEntity = entity->previousEntity;
         lastEntity->nextEntity = entity->nextEntity;
         
-        if(entity->nextEntity != nullptr)
-            entity->nextEntity->previousEntity = lastEntity;
+        if(lastEntity->nextEntity != nullptr && last != nullptr)
+            lastEntity->nextEntity->previousEntity = lastEntity;
 
-        if(entity->previousEntity != nullptr)
-            entity->previousEntity->nextEntity = lastEntity;
+        if(lastEntity->previousEntity != nullptr)
+            lastEntity->previousEntity->nextEntity = lastEntity;
 
         for(auto it : lastEntity->componentList)
             if(it.second->entityId != lastEntity->id)
                 moveBack(lastEntity, it.first, it.second);
 
-        lastEntity = last;
+        if(last != nullptr)
+            lastEntity = last;
         lastEntity->nextEntity = nullptr;
     }
 
