@@ -7,9 +7,7 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
         auto it = entity->componentList.begin();
 
         while(it != entity->componentList.end())
-        {
             it = dettach(entity, it->first, it);
-        }
 
         lastEntity = lastEntity->previousEntity;
         if (lastEntity != nullptr)
@@ -125,7 +123,7 @@ std::unordered_map<std::string, GenericComponent* >::iterator EntitySystem::dett
         }
     }
 
-    return it;
+    return it++;
 }
 
 void EntitySystem::moveBack(EntitySystem::Entity *entity, std::string id, GenericComponent *component)
@@ -144,20 +142,25 @@ void EntitySystem::moveBack(EntitySystem::Entity *entity, std::string id, Generi
                     {
                         component->prev->next = component->next;
 
-                        if(nextComponent->prev != component) // if nextComponent->prev == component it means that component was the last element
-                        {
-                            component->prev = nextComponent->prev;
-                        }
-                        else
-                        {
-                            component->prev->next = nullptr;
+                        if(nextComponent->prev->next == nullptr) // it means that nextComponent is the first element
                             componentMap[id] = component;
-                        }
-                        component->next = nextComponent;
 
+                        if(component->next != nullptr)
+                            component->next->prev = component->prev;
+                        else
+                           componentMap[id]->prev = component->prev;
+
+                        if(nextComponent->prev != component) // if nextComponent->prev == component it means that component was the last element
+                            component->prev = nextComponent->prev;
+
+                        component->next = nextComponent;
                         nextComponent->prev = component;
+
                         if(component->prev->next != nullptr)
                             component->prev->next = component;
+
+                        if(nextComponent->next == nullptr)
+                            componentMap[id]->prev = nextComponent;
 
                         component->entityId = entity->id;
 
