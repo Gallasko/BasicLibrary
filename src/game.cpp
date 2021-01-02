@@ -151,13 +151,20 @@ void testSet(int indices[], int n, bool debug = true)
     print3DContainer(ecs.view<Vector>(), "Printing every vector");
 }
 
-void testViews(int indices[], int n, bool debug = true)
+void testViews(int indices[], int n, bool debug = false)
 {
     EntitySystem ecs;
 
     std::vector<EntitySystem::Entity *> entityList;
 
     int nbA = 0, nbB = 0, nbPattern = 0, nbVector = 0;
+
+    std::cout << "Testing set:";
+
+    for(auto i = 0; i < n; i++)
+            std::cout << " " << indices[i];
+
+    std::cout << std::endl; 
 
     for(auto i = 0; i < n; i++)
     {
@@ -186,14 +193,48 @@ void testViews(int indices[], int n, bool debug = true)
             std::cout << "Created " << i << " Entities !" << std::endl;
     }
 
-    std::cout << "Number of A Component " << viewLen(ecs.view<A>()) << std::endl;
-
     for(auto j = 0; j < n; j++)
     {
-        ecs.removeEntity(entityList[indices[j]]);
+        auto i = indices[j];
+        ecs.removeEntity(entityList[i]);
 
         if(debug)
             print3DContainer(ecs.view<Vector>(), "Printing every vector");
+
+        nbA--;
+
+        if(i % 2 == 0)
+            nbB--;
+            
+        if(i % 3 == 0)
+            nbPattern--;
+
+        nbVector--;
+
+        //std::cout << nbA << " : " << viewLen(ecs.view<A>()) << std::endl;
+        if(nbA != viewLen(ecs.view<A>()))
+        {
+            std::cout << "View A mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(nbB != viewLen(ecs.view<B>()))
+        {
+            std::cout << "View B mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(nbPattern != viewLen(ecs.view<Pattern>()))
+        {
+            std::cout << "View Pattern mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(nbVector != viewLen(ecs.view<Vector>()))
+        {
+            std::cout << "View Vector mismatched" << std::endl;
+            throw(-1);
+        }
 
         if(j % 1000 == 999)
             std::cout << "Deleted " << j << " Entities !" << std::endl;
@@ -224,7 +265,7 @@ void GameWindow::initialize()
 
     //permuteTest(8);
 
-    int indices[] = {1,5,0,3,2,4};
+    //int indices[] = {1,5,0,3,2,4};
 
     //int indices[] = { 0, 3, 1, 5, 7, 2, 4, 6, 8, 9 };
     
@@ -245,14 +286,14 @@ void GameWindow::initialize()
 
     testSet(indice, n, false);
 */
+/*
+    int indices[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    testViews(indices, 6);
-
-    //do 
-    //{
-
-    //} while( std::next_permutation(indice, indice + n) );
-
+    do 
+    {
+        testViews(indices, 8, false);
+    } while( std::next_permutation(indices, indices + 8) );
+*/
     //ticking = true;
     //std::thread t (&GameWindow::tick, this);
 
