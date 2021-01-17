@@ -263,6 +263,56 @@ void GameWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
+    EntitySystem ecs;
+
+    for(int x = 0; x < 20; x++)
+    {
+        auto entity = ecs.createEntity();
+        ecs.attach<Vector>(entity, { x, 1, 1 } );
+
+        if(x % 2 == 0)
+        {
+            ecs.attach<Position>(entity, { 0, x, 0 } );
+        }
+
+        if(x % 3 == 0)
+        {
+            ecs.attach<Velocity>(entity, { 0, 0, x } );
+        }
+
+        auto vecteur = entity->get<Vector>();
+    } 
+
+    //print3DContainer(ecs.view<Vector>(), "Print tout les vecteurs");
+
+    for(auto& vector: ecs.view<Vector>())
+    {
+        vector.y -= 3;
+    }
+
+    print3DContainer(ecs.view<Vector>(), "Print tout les vecteurs");
+
+    //auto fullGroup = ecs.group<Vector>();
+    auto fullGroup = ecs.group<Vector, Position>();
+
+    std::cout << fullGroup->size() << std::endl;
+
+/*
+    for(auto entity : *fullGroup)
+    {
+        //std::cout << entity.get<Vector>()->x << std::endl;
+        std::cout << entity.get<Vector>()->x << " " << entity.get<Position>()->y << std::endl;
+        //std::cout << entity.get<Vector>()->x << " " << entity.get<Position>()->y << " " << entity.get<Velocity>()->z << std::endl;
+    }
+*/
+
+    for(auto& entity : *fullGroup)
+    {
+        entity.get<Vector>()->x += entity.get<Position>()->y;
+    }
+
+    print3DContainer(ecs.view<Vector>(), "Print tout les vecteurs");
+
     //permuteTest(8);
 
     //int indices[] = {1,5,0,3,2,4};

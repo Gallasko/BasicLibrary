@@ -67,11 +67,11 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
     delete entity;
 }
 
-std::unordered_map<std::string, GenericComponent* >::iterator EntitySystem::dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, GenericComponent* >::iterator it)
+std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator EntitySystem::dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator it)
 {
     if(componentMap.find(id) != componentMap.end())
     {
-        GenericComponent* component = entity->getComponent(id);
+        EntitySystem::GenericComponent* component = entity->getComponent(id);
 
         if(component != nullptr)
         {
@@ -126,7 +126,7 @@ std::unordered_map<std::string, GenericComponent* >::iterator EntitySystem::dett
     return it++;
 }
 
-void EntitySystem::moveBack(EntitySystem::Entity *entity, std::string id, GenericComponent *component)
+void EntitySystem::moveBack(EntitySystem::Entity *entity, std::string id, EntitySystem::GenericComponent *component)
 {
     if(component->prev != nullptr)
     {

@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 
 	GameWindow game;
     game.resize(640, 480);
-    game.setAnimating(true);
+    game.setAnimating(false);
     game.show();
 
     QObject::connect(&game, SIGNAL(quitApp()), &app, SLOT(quit()));
