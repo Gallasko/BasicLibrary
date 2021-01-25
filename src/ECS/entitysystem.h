@@ -108,7 +108,7 @@ public:
             unsigned int entityId;
             std::unordered_map<std::string, EntitySystem::GenericComponent*> componentList;
 
-            GroupItem *next;
+            GroupItem *next = nullptr;
         };
 
         class Iterator
@@ -116,6 +116,7 @@ public:
         friend class GroupList;
         public:
             Iterator() : node(nullptr) {}
+            Iterator(const EntitySystem::GroupList::Iterator& copy) : node(copy.node) {}
 
             //Pre Increment
             inline Iterator& operator++() { node = node->next; return *this; }
@@ -131,24 +132,33 @@ public:
         protected:
             Iterator(GroupList::GroupItem *componentNodes) : node(componentNodes) {}
 
+            inline void deleteNode() { delete node; }
+
         private:
-            GroupList::GroupItem *node;
+            EntitySystem::GroupList::GroupItem *node;
         };
 
-        GroupList() : head(nullptr), tail(nullptr), last(nullptr), nbElement(0) {}
-        GroupList(EntitySystem::GroupList::GroupItem *first, EntitySystem::GroupList::GroupItem *last, unsigned int nbElement) : head(first), tail(nullptr), last(last), nbElement(nbElement) {}
+        GroupList() : head(nullptr), tail(nullptr), nbElement(0) {}
+        GroupList(EntitySystem::GroupList::GroupItem *first, unsigned int nbElement) : head(first), tail(nullptr), nbElement(nbElement) {}
+        GroupList(const GroupList& copy) : head(copy.head), tail(copy.tail), nbElement(copy.nbElement) {}
 
         inline Iterator begin() { return head; }
         inline Iterator end() { return tail; }
 
-        inline unsigned int size() { return nbElement; }
-        inline bool isEmpty() { return nbElement == 0; }
+        inline unsigned int size() const { return nbElement; }
+        inline bool isEmpty() const { return nbElement == 0; }
+
+        inline void append(EntitySystem::GroupList::GroupItem *item) { item->next = head.node; head.node = item; nbElement++; };
+        void erase(unsigned int entityId);
+        bool changeId(unsigned int idToBeChanged, unsigned int newId);
+
+        bool find(unsigned int entityId);
+        inline bool find(EntitySystem::Entity *entity) { return find(entity->id); }
 
     private:
         Iterator head;
         Iterator tail;
 
-        EntitySystem::GroupList::GroupItem *last;
         unsigned int nbElement;
     };
 
@@ -168,7 +178,7 @@ public:
     EntitySystem::GroupList* registerGroup();
 
     template <typename Component, typename... Group>
-    EntitySystem::GroupList* group();
+    EntitySystem::GroupList group();
 
     //template <typename FirstComponent, typename... RestComponent>
     //std::vector<Entity* > group();
@@ -186,13 +196,6 @@ private:
         return typeToId<First>() + typeToId<Next...>();
     }
 
-/*
-    template <>
-    std::string typeToId() { return "" }
-
-    template <>
-    bool addViewToVector(std::vector<EntitySystem::GenericComponent *> *vec)<> {}
-*/
     template <typename Component, typename... Args>
     auto addViewToVector(std::vector<EntitySystem::GenericComponent *> *vec) -> typename std::enable_if<(sizeof...(Args) == 0), bool>::type
     {
@@ -218,11 +221,14 @@ private:
     std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator it);
 
     void moveBack(EntitySystem::Entity *entity, std::string id, EntitySystem::GenericComponent *component);
+    
+    bool isEntityInGroup(EntitySystem::Entity *entity, std::string groupName);
 
     unsigned int nbEntity = 0;
     Entity *lastEntity = nullptr;
     std::unordered_map<std::string, EntitySystem::GenericComponent*> componentMap;
     std::unordered_map<std::string, EntitySystem::GroupList*> groupList;
+    std::unordered_map<std::string, std::vector<std::string>> groupNameSpliceList;
 };
 
 template <typename Component>
@@ -265,6 +271,22 @@ Component* EntitySystem::attach(EntitySystem::Entity *entity, const Component& c
 
                 entity->componentList[id] = cp;
                 moveBack(entity, id, cp);
+            }
+        }
+
+        for(auto it : groupList)
+        {
+            if(isEntityInGroup(entity, it.first))
+            {
+                if(!it.second->find(entity))
+                {
+                    auto item = new EntitySystem::GroupList::GroupItem(entity->id);
+
+                    for(auto it2 : groupNameSpliceList[it.first])
+                        item->componentList[it2] = entity->getComponent(it2);
+
+                    it.second->append(item);
+                }
             }
         }
     }
@@ -328,6 +350,12 @@ void EntitySystem::dettach(EntitySystem::Entity *entity)
 
             entity->componentList.erase(id);
             delete component;
+
+            for(auto it : groupList)
+            {
+                if(it.first.find(id) != std::string::npos)
+                    it.second->erase(entity->id);
+            }
         }
     }
 }
@@ -349,26 +377,37 @@ EntitySystem::GroupList* EntitySystem::registerGroup()
     auto groupId = typeToId<Component, Group...>();
 
     if(!isGroupRegistered(groupId))
-        groupList[groupId] = group<Component, Group...>();
+        groupList[groupId] = new EntitySystem::GroupList(group<Component, Group...>());
 
     return groupList[groupId];
 }
 
 template <typename Component, typename... Group>
-EntitySystem::GroupList* EntitySystem::group()
+EntitySystem::GroupList EntitySystem::group()
 {
     auto groupId = typeToId<Component, Group...>();
 
     if(isGroupRegistered(groupId))
     {
-        // return a copy of the groupList to be able to delete the pointer in the application 
- 
-        // provisoire
-        return groupList[groupId];
+        return *groupList[groupId];
     }
     else
     {
         std::vector<EntitySystem::GenericComponent *> idList;
+
+        auto groupName = groupId;
+        std::vector<std::string> idNames;
+
+        std::string delimiter = ";";
+
+        size_t pos = 0;
+        while ((pos = groupId.find(delimiter)) != std::string::npos)
+        {
+            idNames.push_back(groupId.substr(0, pos));
+            groupId.erase(0, pos + delimiter.length());
+        }
+
+        groupNameSpliceList[groupName] = idNames;
 
         if(addViewToVector<Component, Group...>(&idList))
         {
@@ -379,20 +418,7 @@ EntitySystem::GroupList* EntitySystem::group()
             bool isFirstItem = true;
             bool sameEntityId = false; 
             bool end = false;
-
-            std::vector<std::string> idNames;
-
-            std::string delimiter = ";";
-
-            size_t pos = 0;
-            while ((pos = groupId.find(delimiter)) != std::string::npos)
-            {
-                idNames.push_back(groupId.substr(0, pos));
-                groupId.erase(0, pos + delimiter.length());
-            }
-
-            idNames.push_back(groupId);
-
+            
             do
             {
                 do
@@ -433,7 +459,7 @@ EntitySystem::GroupList* EntitySystem::group()
                         currentItem = currentItem->next; 
                     }
 
-                    for (int x = 0; x < idNames.size() - 1; x++)
+                    for (int x = 0; x < static_cast<int>(idNames.size()); x++)
                         currentItem->componentList[idNames[x]] = idList[x];
                         
                     nbElement++;
@@ -442,13 +468,13 @@ EntitySystem::GroupList* EntitySystem::group()
 
             } while (!end);
             
-            return new EntitySystem::GroupList(firstItem, currentItem, nbElement);
+            return EntitySystem::GroupList(firstItem, nbElement);
         }
         else
         {
-            return new EntitySystem::GroupList();
+            return EntitySystem::GroupList();
         }
     }
 
-    return new EntitySystem::GroupList();
+    return EntitySystem::GroupList();
 }

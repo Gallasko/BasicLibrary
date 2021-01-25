@@ -70,6 +70,11 @@ int viewLen(Container3D container)
 void permuteTest(int n)
 {
     EntitySystem ecs;
+
+    auto groupA = ecs.registerGroup<A, Vector>();
+    auto groupB = ecs.registerGroup<A, B, Pattern, Vector>();
+    auto groupC = ecs.registerGroup<B, Pattern>();
+
     int indice[n];
     
     for(int i = 0; i < n; i++)
@@ -102,10 +107,21 @@ void permuteTest(int n)
             entityList[i] = entity;
         }
 
+        std::cout << "Group A Size: " << groupA->size();
+        std::cout << " Group B Size: " << groupB->size();
+        std::cout << " Group C Size: " << groupC->size();
+
         //print3DContainer(ecs.view<Vector>(), "Printing every vector");
 
         for(auto j = 0; j < n; j++)
             ecs.removeEntity(entityList[indice[j]]);
+
+        std::cout << " Group A Size: " << groupA->size();
+        std::cout << " Group B Size: " << groupB->size();
+        std::cout << " Group C Size: " << groupC->size() << std::endl;
+
+        if( groupA->size() != 0 || groupB->size() != 0 || groupC->size() != 0 )
+            throw -1;
 
         print3DContainer(ecs.view<Vector>(), "Printing every vector");
     } while( std::next_permutation(indice, indice + n) );
@@ -244,6 +260,183 @@ void testViews(int indices[], int n, bool debug = false)
     print3DContainer(ecs.view<Vector>(), "Printing every vector");
 }
 
+void testGroups(int indices[], int n, bool debug = false)
+{
+    EntitySystem ecs;
+
+    std::vector<EntitySystem::Entity *> entityList;
+
+    auto groupA = ecs.registerGroup<A, Vector>();
+    auto groupB = ecs.registerGroup<A, B, Pattern, Vector>();
+    auto groupC = ecs.registerGroup<B, Pattern>();
+    auto groupD = ecs.registerGroup<Pattern, Vector>();
+    auto groupE = ecs.registerGroup<Vector>();
+
+    int nbA = 0, nbB = 0, nbPattern = 0, nbVector = 0, nbGroupB = 0;
+
+    std::cout << "Testing set:";
+
+    for(auto i = 0; i < n; i++)
+            std::cout << " " << indices[i];
+
+    std::cout << std::endl; 
+
+    for(auto i = 0; i < n; i++) 
+    {
+        auto entity = ecs.createEntity();
+        ecs.attach<A>(entity, { "Entity " + std::to_string(i), i } );
+        nbA++;
+
+        if(i % 2 == 0)
+        {
+            ecs.attach<B>(entity, { "Entity " + std::to_string(i), i , i * 5.5f } );
+            nbB++;
+        }
+            
+        if(i % 3 == 0)
+        {
+            ecs.attach<Pattern>(entity, { "Guess i got pattern " + std::to_string(i % 2) } );
+            nbPattern++;
+        }
+
+        if(i % 6 == 0)
+            nbGroupB++;
+            
+        ecs.attach<Vector>(entity, { i, -i, 0 } );
+        nbVector++;
+
+        entityList.push_back(entity);
+
+        if(i % 1000 == 999)
+            std::cout << "Created " << i << " Entities !" << std::endl;
+    }
+
+    auto group = ecs.group<A, B, Vector>();
+    
+    for(auto& el : group)
+    {
+        el.get<B>()->a = 5;
+        el.get<A>()->a = 12;
+        el.get<Vector>()->z += 10;
+        el.get<A>()->name = "Hut";
+    }
+
+    for(auto& element : *groupA)
+    {
+        element.get<A>()->a++;
+        element.get<Vector>()->z += 0.25f;
+    }
+
+    for(auto j = 0; j < n; j++)
+    {
+        auto i = indices[j];
+        ecs.removeEntity(entityList[i]);
+
+        if(debug)
+            print3DContainer(ecs.view<Vector>(), "Printing every vector");
+
+        nbA--;
+
+        if(i % 2 == 0)
+            nbB--;
+            
+        if(i % 3 == 0)
+            nbPattern--;
+
+        if(i % 6 == 0)
+            nbGroupB--;
+
+        nbVector--;
+
+        //std::cout << nbA << " : " << viewLen(ecs.view<A>()) << std::endl;
+        if(nbA != viewLen(ecs.view<A>()))
+        {
+            std::cout << "View A mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(nbB != viewLen(ecs.view<B>()))
+        {
+            std::cout << "View B mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(nbPattern != viewLen(ecs.view<Pattern>()))
+        {
+            std::cout << "View Pattern mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(nbVector != viewLen(ecs.view<Vector>()))
+        {
+            std::cout << "View Vector mismatched" << std::endl;
+            throw(-1);
+        }
+
+        if(groupA->size() != nbA)
+        {
+            std::cout << "Group A failure" << std::endl;
+            throw(-1);
+        }
+
+        if(groupB->size() != nbGroupB)
+        {
+            std::cout << "Group B failure" << std::endl;
+            throw(-1);
+        }
+
+        if(groupC->size() != nbGroupB)
+        {
+            std::cout << "Group C failure" << std::endl;
+            throw(-1);
+        }
+
+        if(groupD->size() != nbPattern)
+        {
+            std::cout << "Group D failure" << std::endl;
+            throw(-1);
+        }
+
+        if(groupE->size() != nbVector)
+        {
+            std::cout << "Group E failure" << std::endl;
+            throw(-1);
+        }
+
+        for(auto& element : *groupA)
+        {
+            element.get<A>()->a++;
+            element.get<Vector>()->z += 0.25f;
+        }
+
+        for(auto& element : *groupB)
+        {
+            element.get<A>()->a++;
+        }
+
+        for(auto& element : *groupC)
+        {
+            element.get<B>()->b += 0.1f;
+        }
+
+        for(auto& element : *groupD)
+        {
+            element.get<Pattern>()->patternName = "Hello " + std::to_string(element.get<Vector>()->x);
+        }
+
+        for(auto& element : *groupE)
+        {
+            element.get<Vector>()->x += 0.5f;
+        }
+
+        if(j % 1000 == 999)
+            std::cout << "Deleted " << j << " Entities !" << std::endl;
+        
+    }
+
+    print3DContainer(ecs.view<Vector>(), "Printing every vector");
+}
+
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -263,6 +456,7 @@ void GameWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
+/*
     EntitySystem ecs;
 
     for(int x = 0; x < 20; x++)
@@ -293,18 +487,23 @@ void GameWindow::initialize()
     print3DContainer(ecs.view<Vector>(), "Print tout les vecteurs");
 
     //auto fullGroup = ecs.group<Vector>();
-    auto fullGroup = ecs.group<Vector, Position>();
+    auto fullGroup = ecs.registerGroup<Vector, Position>();
 
     std::cout << fullGroup->size() << std::endl;
 
-/*
+    auto entity = ecs.createEntity();
+
+    ecs.attach<Vector>(entity, {0, 0, 0} );
+    ecs.attach<Position>(entity, {0, 2, 4} );
+
+    std::cout << fullGroup->size() << std::endl;
+
     for(auto entity : *fullGroup)
     {
         //std::cout << entity.get<Vector>()->x << std::endl;
         std::cout << entity.get<Vector>()->x << " " << entity.get<Position>()->y << std::endl;
         //std::cout << entity.get<Vector>()->x << " " << entity.get<Position>()->y << " " << entity.get<Velocity>()->z << std::endl;
     }
-*/
 
     for(auto& entity : *fullGroup)
     {
@@ -313,6 +512,17 @@ void GameWindow::initialize()
 
     print3DContainer(ecs.view<Vector>(), "Print tout les vecteurs");
 
+    auto recupGroup = ecs.group<Vector, Position>();
+
+    for(auto &entity : recupGroup)
+    {
+        entity.get<Vector>()->y += 15;
+    }
+
+    print3DContainer(ecs.view<Vector>(), "Print tout les vecteurs");
+
+*/
+    
     //permuteTest(8);
 
     //int indices[] = {1,5,0,3,2,4};
@@ -336,6 +546,24 @@ void GameWindow::initialize()
 
     testSet(indice, n, false);
 */
+    int n = 10000;
+
+    int *indice = new int [n];
+
+    for (int i = 0; i < n; i++)
+        indice[i] = i;
+
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine e(seed);
+
+    std::shuffle(indice, indice + n, e);
+
+    testGroups(indice, n, false);
+
+    //int indices[] = { 1, 3, 5, 4, 8, 6, 2, 0, 7, 9 };
+    
+    //testGroups(indices, 10);
+
 /*
     int indices[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 

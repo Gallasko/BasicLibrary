@@ -1,5 +1,67 @@
 #include "entitysystem.h"
 
+void EntitySystem::GroupList::erase(unsigned int entityId)
+{
+    auto start = begin();
+    EntitySystem::GroupList::GroupItem *previousGroupItem = nullptr;
+
+    if(size() != 0)
+    {
+        while ((*start).next != nullptr && (*start).entityId != entityId)
+        {
+            previousGroupItem = &(*start);
+            start++;
+        }
+            
+        if((*start).entityId == entityId)
+        {
+            if(previousGroupItem != nullptr)
+                previousGroupItem->next = (*start).next;
+
+            if(start == begin())
+                head.node = head.node->next;
+
+            start.deleteNode();
+            nbElement--;
+        }
+    }
+}
+
+bool EntitySystem::GroupList::changeId(unsigned int idToBeChanged, unsigned int newId)
+{
+    auto start = begin();
+
+    if(size() != 0)
+    {
+        while ((*start).next != nullptr && (*start).entityId != idToBeChanged)
+            start++;
+
+        if((*start).entityId == idToBeChanged)
+        {
+            (*start).entityId = newId;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool EntitySystem::GroupList::find(unsigned int entityId)
+{
+    auto start = begin();
+
+    if(size() != 0)
+    {
+        while ((*start).next != nullptr && (*start).entityId != entityId)
+            start++;
+
+        return (*start).entityId == entityId;
+    }
+
+    return false;
+    
+}
+
 void EntitySystem::removeEntity(EntitySystem::Entity* entity)
 {
     if(entity == lastEntity)
@@ -44,6 +106,8 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
         else
             last = nullptr;
 
+        auto lastId = lastEntity->id;
+
         lastEntity->id = entity->id;
         lastEntity->previousEntity = entity->previousEntity;
         lastEntity->nextEntity = entity->nextEntity;
@@ -57,6 +121,25 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
         for(auto it : lastEntity->componentList)
             if(it.second->entityId != lastEntity->id)
                 moveBack(lastEntity, it.first, it.second);
+
+        for(auto it : groupList)
+        {
+            if(isEntityInGroup(lastEntity, it.first))
+            {
+                if(!it.second->changeId(lastId, lastEntity->id))
+                {
+                    if(!it.second->find(entity))
+                    {
+                        auto item = new EntitySystem::GroupList::GroupItem(entity->id);
+
+                        for(auto it2 : groupNameSpliceList[it.first])
+                            item->componentList[it2] = lastEntity->getComponent(it2);
+
+                        it.second->append(item);
+                    }
+                }
+            }
+        }
 
         if(last != nullptr)
             lastEntity = last;
@@ -118,6 +201,10 @@ std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator Enti
                 componentMap.erase(id);
             }
 
+            for(auto it : groupList)
+                if(isEntityInGroup(entity, it.first))
+                    it.second->erase(entity->id);
+
             delete component;
             return entity->componentList.erase(it);
         }
@@ -173,4 +260,15 @@ void EntitySystem::moveBack(EntitySystem::Entity *entity, std::string id, Entity
             }
         }
     }
+}
+
+bool EntitySystem::isEntityInGroup(EntitySystem::Entity *entity, std::string groupName)
+{
+    int nbComponent = 0;
+
+    for(auto component : groupNameSpliceList[groupName])
+        if(entity->has(component))
+            nbComponent++;
+
+    return nbComponent == static_cast<int>(groupNameSpliceList[groupName].size());
 }
